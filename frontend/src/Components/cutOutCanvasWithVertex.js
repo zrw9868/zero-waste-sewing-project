@@ -239,27 +239,6 @@ function CutOutCanvasV2() {
         <Layer>
           <Text text="Just start drawing" x={5} y={30} />
           {renderE.map((e, i) => {
-            //console.log(getPoints(e))
-            // if (e.pair > -1) {
-            //   return (<Arrow 
-            //     key={i}
-            //     points={getPoints(e)}
-            //     stroke= {e.color}
-            //     strokeWidth={5}
-            //     tension={0.5}
-            //     lineCap="round"
-            //     lineJoin="round"
-            //     pointerLength= {10}
-            //     pointerWidth ={10}
-            //     fill = {e.color}
-            //     onMouseOver={handleLineMouseOver}
-            //     onMouseOut={handleLineMouseOut}
-            //     onClick = {handleLineOnClick}
-            //     onMouseDown={handleMouseDown}
-            //     onMousemove={handleMouseMove}
-            //     onMouseup={handleMouseUp}
-            // />
-            // )}
             return (
             <Line
               key={i}
