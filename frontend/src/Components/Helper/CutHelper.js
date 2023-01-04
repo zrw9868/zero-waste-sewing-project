@@ -1,6 +1,6 @@
 import { min, max, floor, sqrt } from 'mathjs';
 import {Vertex, getVertices } from '../Shape/Vertex.js'
-import {Edge, getEdges} from '../Shape/Edge.js'
+import {Edge, getEdges, getPoints} from '../Shape/Edge.js'
 import {Face, getFaces} from '../Shape/FaceWithEdges.js'
 
 
@@ -222,6 +222,148 @@ export function addNewFaces(faces, v, first, second, to_add_1, to_add_2) {
       first.push(to_add_2, to_add_1)
     }
     faces.push(Face(first), Face(second))
+}
+
+/*
+Check if the two given edges can be merged together
+*/
+export function canMerge(e1, e2) {
+  let [x1,y1,x2,y2] = getPoints(e1)
+  let [x3,y3,x4,y4] = getPoints(e2)
+  // console.log([x1,y1,x2,y2])
+  // console.log([x3,y3,x4,y4])
+
+  let [slope1, intercept1] = slopeIntercept(x1,y1,x2,y2)
+  let [slope2, intercept2] = slopeIntercept(x4,y4,x3,y3)
+  //TODO also need to check if they overlap
+  // console.log([slope1, intercept1])
+  // console.log([slope2, intercept2])
+
+  if (slope1 === false) {
+    return slope2 === false && (intercept2 - intercept1) < 0.00001
+  } else {
+    return (slope1 - slope2) < 0.00001 && (intercept2 - intercept1) < 0.00001
+  }
+
+}
+
+
+export function merge(faces, edges, vertices, renderE, renderF, renderV, e1, e2) {
+  // find two faces of the two edges
+  var first
+  var second 
+  var found = []
+
+  for (let i = 0; i < faces.length; i++) {
+    let faceEdges = faces[i].e
+    for (let j = 0; j < faceEdges.length; j++) {
+      if (faceEdges[j] == e1)  {
+        first = [].concat(faceEdges.slice(j+1, faceEdges.length), faceEdges.slice(0, j))
+        found.push(i)
+        break
+      }
+      if (faceEdges[j] == e2)  {
+        second = [].concat(faceEdges.slice(j+1, faceEdges.length), faceEdges.slice(0, j))
+        found.push(i)
+        break
+      }
+
+    }
+    if (found.length === 2) {
+      break
+    }
+  }
+
+  console.log(first)
+  console.log(second)
+  // delete two faces
+  let new_faces = faces.filter((value, i) => ! found.includes(i))
+  let new_renderF = renderF.filter((value, i) => ! found.includes(i))
+  console.log(new_faces)
+  console.log(new_renderF)
+
+  //delete edges and 
+  let [x1,y1,x2,y2] = getPoints(edges[e1])
+  let [x3,y3,x4,y4] = getPoints(edges[e2])
+  let new_f = mergeEdges(first, second, edges, vertices, e1, e2, x1 === x4 && y1 == y4, x3 === x2 && y3 == y2)
+  let new_rf = mergeEdges(first, second, renderE, renderV, e1, e2, x1 === x4 && y1 == y4, x3 === x2 && y3 == y2, true)
+  console.log(new_f)
+  console.log(new_rf)
+
+  //add back newly merged face
+  new_faces.push(new_f)
+  new_renderF.push(new_rf)
+
+  return [new_faces, new_renderF]
+
+}
+
+/*
+
+*/
+export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite1, exactOpposite2, render=false) {
+  let edge1 = edges[e1]
+  let edge2 = edges[e2]
+
+  let [v1,v2] = edges[e1].v
+  let [v3, v4] = edges[e2].v
+  let final = []
+
+  edges.splice(e1, 1, null)
+  edges.splice(e2, 1, null)
+
+  if (exactOpposite1) {
+    edges.splice(first[first.length-1], 1, Edge(edges[first[first.length-1]].v[0], edges[second[0]].v[1]))
+    edges.splice(second[0], 1, null)
+    
+    vertices.splice(v1, 1, null)
+    vertices.splice(v4, 1, null)
+
+    //TODO recursively merge edges
+
+    final = [].concat(first.slice(1, first.length), second.slice(1, second.length-1))
+  
+  } else {
+    if (render) {
+      // find intersection point of 
+      let new_v = intersection(getPoints(edges[first[first.length-1]]), getPoints(edge2))
+      
+      vertices.splice(v1, 1, new_v)
+      edges.splice(first[first.length -1], 1, Edge(first[0].v[1], v1))
+
+    } 
+    edges.splice(e1, 1, Edge(v1, v4))
+    final = [].concat(first.slice(1, first.length), [e1], second.slice(0, second.length-1))
+  }
+
+  if (exactOpposite2) {
+    edges.splice(second[second.length-1], 1, Edge(edges[second[second.length-1]].v[0], edges[first[0]].v[1]))
+    edges.splice(first[0], 1, null)
+    
+    vertices.splice(v3, 1, null)
+    vertices.splice(v2, 1, null)
+
+    //TODO recursively merge edges??
+
+    final.push(second[second.length-1])
+  } else {
+
+    if (render) {
+
+      // find intersection point of 
+      console.log(edges[first[0]].v[0])
+      let new_v = intersection(getPoints(edges[first[0]]), getPoints(edge2))
+      console.log(new_v)
+      
+      vertices.splice(v2, 1, new_v)
+      edges.splice(first[0], 1, Edge(v2, edges[first[0]].v[1]))
+
+    } 
+    edges.splice(e2, 1, Edge(v3, v2))
+    final.push(second[second.length-1], e2,first[0])
+  }
+
+  return Face(final)
 }
 
 

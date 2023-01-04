@@ -1,5 +1,5 @@
 import {floor} from 'mathjs';
-import {setEdgePair, setRender} from '../Shape/Edge.js'
+import {setEdgePair} from '../Shape/Edge.js'
 
 export function generateColor(colors) {
 	while (true) {
@@ -22,11 +22,6 @@ export function resetPair(renderE, edges, idx) {
   		setEdgePair(edges[idx[i]], -1)
 	}
 
-}
-
-export function changeDir(renderE, edges, idx) {
-	setRender(renderE[idx])
-    setRender(edges[idx])
 }
 
 export function removePairOnCut(renderE, edges, pairs, toBeRemoved) {

@@ -95,26 +95,6 @@ function PolygonGroup(props) {
     {flattened.map((points, i) => 
       {
         let edge = renderE[face.e[i]]
-        // if (edge.render == -1) {
-        //   points = [points[2], points[3], points[0], points[1]]
-        // }
-        // if (edge.pair > -1) {
-        //   return (<Arrow 
-        //     key={i}
-        //     points={points}
-        //     stroke= {edge.color}
-        //     strokeWidth={5}
-        //     tension={0.5}
-        //     lineCap="round"
-        //     lineJoin="round"
-        //     pointerLength= {10}
-        //     pointerWidth ={10}
-        //     fill = {edge.color}
-        //     onMouseOver={handleLineMouseOver}
-        //     onMouseOut={handleLineMouseOut}
-        //     onClick = {handleLineOnClick}
-        // />
-        // )}
         return (
         <Line
           key={i}

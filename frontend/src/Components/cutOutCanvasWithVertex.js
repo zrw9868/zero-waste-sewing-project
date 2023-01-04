@@ -5,7 +5,7 @@ import { Stage, Layer, Line, Arrow, Text, Transformer} from 'react-konva';
 import { min, max, floor  } from 'mathjs';
 
 
-import {intersection, snapCut, addNewFacesV2, deleteFaceV2} from './Helper/CutHelper.js';
+import {intersection, snapCut, addNewFacesV2, deleteFaceV2, canMerge, merge} from './Helper/CutHelper.js';
 import {generateColor, addPair, resetPair, changeDir, removePairOnCut} from './Helper/CorrespondenceHelper.js'
 import {Vertex, getVertices, getPoint } from './Shape/Vertex.js'
 import {Edge, getEdges, getPoints} from './Shape/Edge.js'
@@ -18,6 +18,7 @@ function CutOutCanvasV2() {
 
   const [tool, setTool] = useState("cut");
   const [pairFunction, setPairFunction] = useState();
+  const [join, setJoin] = useState();
 
   const [width, setWidth] = useState(600);
   const [height, setHeight] = useState(400);
@@ -80,8 +81,7 @@ function CutOutCanvasV2() {
     e.target.stroke("orange")
     e.target.strokeWidth(8)
     setMouseOverLine(true)
-    setLineSelected(e.target.index - 1)
-
+    setLineSelected(parseInt(e.target.id()))
   }
 
   const handleLineMouseOut = (e) => {
@@ -91,46 +91,76 @@ function CutOutCanvasV2() {
   }
 
   const handleLineOnClick = (e) => {
-    if (tool != "pen") return
-    if(mouseOverLine && pairFunction == "add") {
-      if (pair.length == 1) {
-        //check for valid pair 
-        if (renderE[lineSelected].pair == -1) {
-          colors.add(color)
-          addPair(renderE, edges, lineSelected, count, color)
-          pairs.set(count, [pair[0], lineSelected])
+    if(!mouseOverLine) return 
 
-          setColors(colors)
-          setPairs(pairs)
-          setCount(count+1)
-        } else {
-          resetPair(renderE, edges, pair)
-        }
-        setPair([])
-      }
-      else {
-        //pair already set for the current edge, 
-        if (renderE[lineSelected].pair != -1) {
-          changeDir(renderE, edges, lineSelected)
-        } else {
-          let color = generateColor(colors)
-          addPair(renderE, edges, lineSelected, count, color)
+    if (tool === "cut" && join === "join") {
+      if (refLines.length === 1) {
+        //check if they can perform a merge 
+        if (canMerge(edges[refLines[0]], edges[lineSelected])) {
+          let [new_faces,new_renderF] = merge(faces, edges, vertices, renderE, renderF, renderV, refLines[0], lineSelected)
+          console.log(new_renderF)
+          console.log(renderE)
+          console.log(renderV)
 
-          setColor(color)
-          setPair([lineSelected])
+
+
+          setEdges(edges)
+          setRenderE(renderE)
+          setVertices(vertices)
+          setRenderV(renderV)
+          setFaces(new_faces)
+          setRenderF(new_renderF)
+          setCut([])
+          setRefLines([])
+
+        } else {
+          setRefLines([])
         }
+
+      } else {
+        setRefLines([lineSelected])
       }
-    } else if (mouseOverLine && pairFunction == "remove") {
+
+    } else if (tool === "pen"){
+
+      if(pairFunction === "add") {
+        if (pair.length === 1) {
+          //check for valid pair 
+          if (renderE[lineSelected].pair === -1) {
+            colors.add(color)
+            addPair(renderE, edges, lineSelected, count, color)
+            pairs.set(count, [pair[0], lineSelected])
+
+            setColors(colors)
+            setPairs(pairs)
+            setCount(count+1)
+          } else {
+            resetPair(renderE, edges, pair)
+          }
+          setPair([])
+        }
+        else {
+          //pair already set for the current edge, 
+          if (renderE[lineSelected].pair === -1) {
+            let color = generateColor(colors)
+            addPair(renderE, edges, lineSelected, count, color)
+            setColor(color)
+            setPair([lineSelected])
+          }
+        }
+    } else if (pairFunction === "remove") {
       removePairOnCut(renderE, edges, pairs, [lineSelected])
     }
     setRenderE(renderE)
     setEdges(edges)
 
+    }
+
   }
 
 
   const handleMouseDown = (e) => {
-    if ( tool !== "cut" || cut.length !== 0) return
+    if ( tool !== "cut" || join !== "cut" || cut.length !== 0) return
     const pos = e.target.getStage().getPointerPosition();
     if (mouseOverLine) {
       setCut([pos.x, pos.y])
@@ -141,7 +171,7 @@ function CutOutCanvasV2() {
 
   const handleMouseMove = (e) => {
     // no cutting - skipping
-    if ( tool !== "cut" || cut.length < 2) return
+    if ( tool !== "cut" || join !== "cut" || cut.length < 2) return
     const pos = e.target.getStage().getPointerPosition();
     
     setCut([cut[0],cut[1], pos.x-3, pos.y-3])
@@ -155,7 +185,7 @@ function CutOutCanvasV2() {
 
   const handleMouseUp = (e) => {
     // no drawing skipping
-    if (tool !== "cut" || cut.length !== 4) return
+    if (tool !== "cut" || join !== "cut" || cut.length !== 4) return
 
     if (refLines.length < 2) {
       setCut([])
@@ -186,6 +216,7 @@ function CutOutCanvasV2() {
     setVertices(vertices)
     setRenderV(renderV)
     setFaces(faces)
+    setRenderF(renderF)
     setCut([])
     setRefLines([])
   };
@@ -226,6 +257,8 @@ function CutOutCanvasV2() {
           clear = {clear}
           pairFunction = {pairFunction}
           setPairFunction = {setPairFunction}
+          joinFunction = {join}
+          setJoinFunction = {setJoin}
           width = {width}
           setWidth = {setWidth}
           height = {height}
@@ -239,36 +272,41 @@ function CutOutCanvasV2() {
         <Layer>
           <Text text="Just start drawing" x={5} y={30} />
           {renderE.map((e, i) => {
-            return (
-            <Line
-              key={i}
-              points={getPoints(e)}
-              stroke= {e.color}
-              strokeWidth={5}
-              tension={0.5}
-              lineCap="round"
-              lineJoin="round"
-              onMouseOver={handleLineMouseOver}
-              onMouseOut={handleLineMouseOut}
-              onClick = {handleLineOnClick}
-              onMouseDown={handleMouseDown}
-              onMousemove={handleMouseMove}
-              onMouseup={handleMouseUp}
-            />)}
+            if (e !== null) {
+              return (
+              <Line
+                key={i}
+                id ={i.toString()}      
+                points={getPoints(e)}
+                stroke= {e.color}
+                strokeWidth={5}
+                tension={0.5}
+                lineCap="round"
+                lineJoin="round"
+                onMouseOver={handleLineMouseOver}
+                onMouseOut={handleLineMouseOut}
+                onClick = {handleLineOnClick}
+                onMouseDown={handleMouseDown}
+                onMousemove={handleMouseMove}
+                onMouseup={handleMouseUp}
+              />)}}
           )}
 
-          {edges.map((e, i) => (
-            <Line
-              key={i}
-              points={getPoints(e)}
-              stroke= {"red"}
-              strokeWidth={3}
-              tension={0.5}
-              lineCap="round"
-              lineJoin="round"
-              dash = {[20, 10]}
-              opacity = {0.5}
-            />)
+          {edges.map((e, i) => {
+            if (e !== null) {
+              return (
+              <Line
+                key={i}
+                id ={i.toString()}
+                points={getPoints(e)}
+                stroke= {"red"}
+                strokeWidth={3}
+                tension={0.5}
+                lineCap="round"
+                lineJoin="round"
+                dash = {[20, 10]}
+                opacity = {0.5}
+              />)}}
           )}
 
           <Line

@@ -15,6 +15,8 @@ function ModeBar(props) {
         clear,
         pairFunction,
         setPairFunction,
+        joinFunction,
+        setJoinFunction,
         width,
         setWidth,
         height,
@@ -36,10 +38,21 @@ function ModeBar(props) {
       } else {
         setPairFunction()
       }
-    }
+
+      if (newTool === "cut") {
+        setPairFunction("cut")
+      } else {
+        setPairFunction()
+      }
+
+  }
 
   const handlePairFunctionOnChange = (e, newFunction) => {
     setPairFunction(newFunction)
+  }
+
+  const joinOnChange = (e, newFunction) => {
+    setJoinFunction(newFunction)
   }
 
   const handleWidth = (e) => {
@@ -95,6 +108,18 @@ function ModeBar(props) {
             </SvgIcon>
           </ToggleButton>
       </ToggleButtonGroup>
+
+      {tool === "cut"
+        && <ToggleButtonGroup
+            size = "small"
+            value = {joinFunction} 
+            exclusive
+            onChange= {joinOnChange}  
+           >
+              <ToggleButton value ="cut">Cut</ToggleButton>
+              <ToggleButton value="join">Join</ToggleButton>
+            </ToggleButtonGroup>
+      }
 
       {tool === "pen"
         && <ToggleButtonGroup
