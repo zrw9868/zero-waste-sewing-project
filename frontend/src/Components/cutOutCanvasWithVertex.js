@@ -82,6 +82,7 @@ function CutOutCanvasV2() {
     e.target.strokeWidth(8)
     setMouseOverLine(true)
     setLineSelected(parseInt(e.target.id()))
+    console.log(e.target.id())
   }
 
   const handleLineMouseOut = (e) => {
@@ -97,21 +98,20 @@ function CutOutCanvasV2() {
       if (refLines.length === 1) {
         //check if they can perform a merge 
         if (canMerge(edges[refLines[0]], edges[lineSelected])) {
-          let [new_faces,new_renderF] = merge(faces, edges, vertices, renderE, renderF, renderV, refLines[0], lineSelected)
-          console.log(new_renderF)
-          console.log(renderE)
-          console.log(renderV)
-
-
+          merge(faces, edges, vertices, renderE, renderF, renderV, refLines[0], lineSelected)
 
           setEdges(edges)
           setRenderE(renderE)
           setVertices(vertices)
           setRenderV(renderV)
-          setFaces(new_faces)
-          setRenderF(new_renderF)
+          setFaces(faces)
+          setRenderF(renderF)
           setCut([])
           setRefLines([])
+
+          console.log(renderF)
+          console.log(renderE)
+          console.log(renderV)
 
         } else {
           setRefLines([])
@@ -173,9 +173,8 @@ function CutOutCanvasV2() {
     // no cutting - skipping
     if ( tool !== "cut" || join !== "cut" || cut.length < 2) return
     const pos = e.target.getStage().getPointerPosition();
-    
-    setCut([cut[0],cut[1], pos.x-3, pos.y-3])
 
+    setCut([cut[0],cut[1], pos.x-3, pos.y-3])
     if (mouseOverLine) {
       // add point
       setRefLines([refLines[0], lineSelected])
@@ -202,14 +201,31 @@ function CutOutCanvasV2() {
     // and return the two incomplete faces to be add new cut edges
     let [first, second] = deleteFaceV2(faces, edges, refLines)
     let [renderFirst, renderSecond] = deleteFaceV2(renderF, renderE, refLines)
+    console.log(first)
+    console.log(second)
+
+    console.log(renderFirst)
+    console.log(renderSecond)
+
 
     // snap cut on existing edges (refLines)
     let [new1, new2] = snapCut(edges, vertices, refLines, cut, 0)
     let [rnew1, rnew2] = snapCut(renderE, renderV, refLines, cut, offset)
 
+    console.log(new1)
+    console.log(new2)
+
+    console.log(rnew1)
+    console.log(rnew2)
+
+
     // add new faces
     addNewFacesV2(faces, edges, first, second, new1, new2)
     addNewFacesV2(renderF, renderE, renderFirst, renderSecond, rnew1, rnew2)
+
+    console.log(renderF)
+    console.log(renderE)
+    console.log(renderV)
     
     setEdges(edges)
     setRenderE(renderE)
@@ -268,6 +284,7 @@ function CutOutCanvasV2() {
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
+        onMousemove={handleMouseMove}
       >
         <Layer>
           <Text text="Just start drawing" x={5} y={30} />
@@ -287,7 +304,6 @@ function CutOutCanvasV2() {
                 onMouseOut={handleLineMouseOut}
                 onClick = {handleLineOnClick}
                 onMouseDown={handleMouseDown}
-                onMousemove={handleMouseMove}
                 onMouseup={handleMouseUp}
               />)}}
           )}

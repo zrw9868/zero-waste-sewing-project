@@ -92,13 +92,15 @@ function PolygonGroup(props) {
         opacity = {1}
         closed
     />
-    {flattened.map((points, i) => 
-      {
-        let edge = renderE[face.e[i]]
+
+    {face.e.map((edgeIdx, i) => 
+      { 
+        let edge = renderE[edgeIdx]
         return (
         <Line
-          key={i}
-          points={points}
+          key={edgeIdx}
+          id = {edgeIdx.toString()}
+          points={flattened[i]}
           stroke= {edge.color}
           strokeWidth={5}
           tension={0.5}

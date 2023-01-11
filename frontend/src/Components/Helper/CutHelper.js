@@ -161,65 +161,25 @@ export function deleteFaceV2(faces, edges, refLines) {
 add face defined by edges.
 */
 export function addNewFacesV2(faces, edges, first, second, new1, new2) {
-    if (edges[first[first.length-1]].v[1] == edges[new1[0]].v[0]) {
-      first = first.concat(new1)
-      second = second.concat(new2)
-    } else {
-      first = first.concat(new2)
-      second = second.concat(new1)
-    }
-    faces.push(Face(first), Face(second))
-}
-
-/*
-delete face defined by vertices.
-*/
-export function deleteFace(faces, edges, refLines) {
-	var first 
-  var second 
-  var face
-  var found = []
-
-  for (let i = 0; i < faces.length; i++) {
-    face = faces[i].v
-    found = []
-    // check if the face has required two cut lines
-    for (let j = 0; j < face.length; j++) {
-      for (let k = 0; k<2; k++) {
-        let temp = edges[refLines[k]].v
-        if ((face[j] == temp[0] && face[(j+1)%face.length] == temp[1]) || 
-          (face[j] == temp[1] && face[(j+1)%face.length] == temp[0])) {
-          found.push(j)
-        }
+    // for triangles
+    if (first.length == 0 || second.length == 0) {
+      if (edges[new1[new1.length-1]].v[1] == edges[new1[0]].v[0]) {
+        second = [].concat(first, second, new2)
+        first = new1
+      } else {
+        first = [].concat(first, second, new1)
+        second = new2
       }
-    }
 
-    if (found.length == 2) {
-      // find the two sides of consecutive vertices
-      first = face.slice(found[0]+1, found[1]+1)
-      second = [].concat(face.slice(found[1]+1, faces[i].length), face.slice(0, found[0]+1))
-
-      // delete the face 
-      faces.splice(i, 1)
-      break
-    }
-  }
-  //console.log(first)
-  //console.log(second)
-  return [first, second] 
-}
-
-/*
-add face defined by vertices.
-*/
-export function addNewFaces(faces, v, first, second, to_add_1, to_add_2) {
-
-    if (first[first.length-1] == v) {
-      first.push(to_add_1, to_add_2)
-      second.push(to_add_2, to_add_1)
     } else {
-      second.push(to_add_1, to_add_2)
-      first.push(to_add_2, to_add_1)
+      // for rectangles and polygons
+      if (edges[first[first.length-1]].v[1] == edges[new1[0]].v[0]) {
+        first = first.concat(new1)
+        second = second.concat(new2)
+      } else {
+        first = first.concat(new2)
+        second = second.concat(new1)
+      }
     }
     faces.push(Face(first), Face(second))
 }
@@ -250,6 +210,7 @@ export function canMerge(e1, e2) {
 
 export function merge(faces, edges, vertices, renderE, renderF, renderV, e1, e2) {
   // find two faces of the two edges
+
   var first
   var second 
   var found = []
@@ -277,10 +238,15 @@ export function merge(faces, edges, vertices, renderE, renderF, renderV, e1, e2)
   console.log(first)
   console.log(second)
   // delete two faces
-  let new_faces = faces.filter((value, i) => ! found.includes(i))
-  let new_renderF = renderF.filter((value, i) => ! found.includes(i))
-  console.log(new_faces)
-  console.log(new_renderF)
+  // let new_faces = faces.filter((value, i) => ! found.includes(i))
+  // let new_renderF = renderF.filter((value, i) => ! found.includes(i))
+  // console.log(new_faces)
+  // console.log(new_renderF)
+  faces.splice(found[1], 1)
+  faces.splice(found[0], 1)
+  renderF.splice(found[1], 1)
+  renderF.splice(found[0], 1)
+
 
   //delete edges and 
   let [x1,y1,x2,y2] = getPoints(edges[e1])
@@ -291,10 +257,10 @@ export function merge(faces, edges, vertices, renderE, renderF, renderV, e1, e2)
   console.log(new_rf)
 
   //add back newly merged face
-  new_faces.push(new_f)
-  new_renderF.push(new_rf)
+  faces.push(new_f)
+  renderF.push(new_rf)
 
-  return [new_faces, new_renderF]
+  // return [new_faces, new_renderF]
 
 }
 
@@ -309,6 +275,12 @@ export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite
   let [v3, v4] = edges[e2].v
   let final = []
 
+  let i1 = vertices.indexOf(v1)
+  let i2 = vertices.indexOf(v2)
+  let i3 = vertices.indexOf(v3)
+  let i4 = vertices.indexOf(v4)
+
+
   edges.splice(e1, 1, null)
   edges.splice(e2, 1, null)
 
@@ -316,8 +288,8 @@ export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite
     edges.splice(first[first.length-1], 1, Edge(edges[first[first.length-1]].v[0], edges[second[0]].v[1]))
     edges.splice(second[0], 1, null)
     
-    vertices.splice(v1, 1, null)
-    vertices.splice(v4, 1, null)
+    vertices.splice(i1, 1, null)
+    vertices.splice(i4, 1, null)
 
     //TODO recursively merge edges
 
@@ -328,11 +300,11 @@ export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite
       // find intersection point of 
       let new_v = intersection(getPoints(edges[first[first.length-1]]), getPoints(edge2))
       
-      vertices.splice(v1, 1, new_v)
-      edges.splice(first[first.length -1], 1, Edge(first[0].v[1], v1))
+      vertices.splice(i1, 1, new_v)
+      edges.splice(first[first.length -1], 1, Edge(first[0].v[1], new_v))
 
     } 
-    edges.splice(e1, 1, Edge(v1, v4))
+    edges.splice(e1, 1, Edge(vertices[i1], v4))
     final = [].concat(first.slice(1, first.length), [e1], second.slice(0, second.length-1))
   }
 
@@ -340,8 +312,8 @@ export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite
     edges.splice(second[second.length-1], 1, Edge(edges[second[second.length-1]].v[0], edges[first[0]].v[1]))
     edges.splice(first[0], 1, null)
     
-    vertices.splice(v3, 1, null)
-    vertices.splice(v2, 1, null)
+    vertices.splice(i3, 1, null)
+    vertices.splice(i2, 1, null)
 
     //TODO recursively merge edges??
 
@@ -355,11 +327,11 @@ export function mergeEdges(first, second, edges, vertices, e1, e2, exactOpposite
       let new_v = intersection(getPoints(edges[first[0]]), getPoints(edge2))
       console.log(new_v)
       
-      vertices.splice(v2, 1, new_v)
-      edges.splice(first[0], 1, Edge(v2, edges[first[0]].v[1]))
+      vertices.splice(i2, 1, new_v)
+      edges.splice(first[0], 1, Edge(new_v, edges[first[0]].v[1]))
 
     } 
-    edges.splice(e2, 1, Edge(v3, v2))
+    edges.splice(e2, 1, Edge(v3, vertices[i2]))
     final.push(second[second.length-1], e2,first[0])
   }
 
